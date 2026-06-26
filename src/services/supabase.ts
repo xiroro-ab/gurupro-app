@@ -1637,6 +1637,11 @@ export const GuruService = {
       created_at: record.created_at || new Date().toISOString()
     };
 
+    // Jika foto kosong, hapus property-nya agar tidak error di Supabase jika kolom belum dibuat
+    if (!processed.foto) {
+      delete processed.foto;
+    }
+
     if (activeStorageMode === 'supabase') {
       try {
         const { error } = await supabase.from('counseling_records').upsert([processed]);
