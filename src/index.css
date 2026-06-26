@@ -1,0 +1,72 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap');
+@import "tailwindcss";
+
+@theme {
+  --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, SFMono-Regular, monospace;
+}
+
+@layer utilities {
+  /* Custom Scrollbar for modern dashboards */
+  ::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+  ::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  ::-webkit-scrollbar-thumb {
+    background: #cbd5e1;
+    border-radius: 4px;
+  }
+  ::-webkit-scrollbar-thumb:hover {
+    background: #94a3b8;
+  }
+}
+
+/* Quick Dark Mode Implementation using CSS Filter */
+html.dark-theme {
+  filter: invert(1) hue-rotate(180deg);
+  background-color: #111;
+}
+
+html.dark-theme img, 
+html.dark-theme svg.lucide, 
+html.dark-theme .no-invert {
+  filter: invert(1) hue-rotate(180deg);
+}
+
+/* Fix specific colors that get weird after invert if needed */
+html.dark-theme .bg-blue-600 {
+  /* optional specific tweaks */
+}
+
+/* Custom print media rules to generate stunning PDF/Paper reports */
+@media print {
+  body {
+    background: white !important;
+    color: black !important;
+    font-size: 12pt !important;
+  }
+  .no-print {
+    display: none !important;
+  }
+  .print-area {
+    display: block !important;
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 100%;
+    z-index: 9999;
+    padding: 20px;
+    background: white;
+  }
+  table {
+    border-collapse: collapse !important;
+    width: 100% !important;
+  }
+  th, td {
+    border: 1px solid #000 !important;
+    padding: 6px !important;
+  }
+}

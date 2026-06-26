@@ -1,0 +1,6 @@
+{
+  "name": "GuruPro",
+  "description": "GuruPro is a professional School Management System featuring Role-Based Access Control, Teacher and Student Management, CSV bulk imports, and professional attendance reporting with Palembang Education Department Kop Surat styling.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
