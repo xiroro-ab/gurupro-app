@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { GuruService as db } from '../services/supabase';
 import { TeacherProfile, ClassRoom, Student, GradeType, StudentGrade } from '../types';
-import { Save, AlertCircle, CheckCircle2, Search, FileText, Printer, Download, X } from 'lucide-react';
+import { Save, AlertCircle, CheckCircle2, Search, FileText, Printer, Download, X, Trash2 } from 'lucide-react';
 import { useNotification } from './NotificationToast';
 import { SearchableSelect } from './SearchableSelect';
 
@@ -44,6 +44,23 @@ export default function PenilaianSiswa({ currentUser }: PenilaianSiswaProps) {
     queryKey: ['grades'],
     queryFn: () => db.getGrades()
   });
+
+  const deleteGradesMutation = useMutation({
+    mutationFn: (group: any) => db.deleteGrades(group.class_id, group.mapel, group.tipe_nilai, group.semester, profile.id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['grades'] });
+      toast.success('Berhasil menghapus data nilai!');
+    },
+    onError: (error: any) => {
+      toast.error('Gagal menghapus data nilai: ' + error.message);
+    }
+  });
+
+  const handleDeleteRiwayat = (group: any) => {
+    if (window.confirm(`Apakah Anda yakin ingin menghapus seluruh nilai ${group.tipe_nilai.replace('_', ' ')} mapel ${group.mapel} kelas ini?`)) {
+      deleteGradesMutation.mutate(group);
+    }
+  };
 
   // State for Input
   const [selectedClassId, setSelectedClassId] = useState('');
@@ -255,6 +272,16 @@ export default function PenilaianSiswa({ currentUser }: PenilaianSiswaProps) {
 
   const mapelsInClass = Array.from(new Set(allGrades.filter(g => g.class_id === myClass?.id).map(g => g.mapel)));
 
+  const myGrades = allGrades.filter(g => g.recorded_by === profile.id);
+  const riwayatGroups: any = {};
+  myGrades.forEach(g => {
+    const key = `${g.class_id}_${g.mapel}_${g.tipe_nilai}_${g.semester}`;
+    if (!riwayatGroups[key]) { riwayatGroups[key] = { class_id: g.class_id, mapel: g.mapel, tipe_nilai: g.tipe_nilai, semester: g.semester, count: 0, last_updated: g.created_at || new Date().toISOString() }; }
+    riwayatGroups[key].count++;
+    if (g.created_at && g.created_at > riwayatGroups[key].last_updated) { riwayatGroups[key].last_updated = g.created_at; }
+  });
+  const riwayatGroupArray = Object.values(riwayatGroups).sort((a: any, b: any) => new Date(b.last_updated).getTime() - new Date(a.last_updated).getTime());
+
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -445,38 +472,26 @@ export default function PenilaianSiswa({ currentUser }: PenilaianSiswaProps) {
               <p className="text-xs text-slate-500 mt-1">Daftar kelas dan mata pelajaran yang sudah Anda input nilainya.</p>
             </div>
             <div className="flex gap-2 w-full sm:w-auto">
-              {(() => {
-                const myGrades = allGrades.filter(g => g.recorded_by === profile.id);
-                const groups: any = {};
-                myGrades.forEach(g => {
-                  const key = `${g.class_id}_${g.mapel}_${g.tipe_nilai}_${g.semester}`;
-                  if (!groups[key]) { groups[key] = { class_id: g.class_id, mapel: g.mapel, tipe_nilai: g.tipe_nilai, semester: g.semester, count: 0, last_updated: g.created_at || new Date().toISOString() }; }
-                  groups[key].count++;
-                  if (g.created_at && g.created_at > groups[key].last_updated) { groups[key].last_updated = g.created_at; }
-                });
-                const groupArray = Object.values(groups).sort((a: any, b: any) => new Date(b.last_updated).getTime() - new Date(a.last_updated).getTime());
-                
-                return (
-                  <>
-                    <button 
-                      onClick={() => handleDownloadRiwayatCSV(groupArray)}
-                      className="flex-1 sm:flex-none flex items-center justify-center gap-2 bg-white border border-slate-200 text-slate-700 px-4 py-2 rounded-xl text-sm font-bold hover:bg-slate-50 transition-colors shadow-sm"
-                    >
-                      <Download className="w-4 h-4" />
-                      <span className="hidden sm:inline">Unduh CSV</span>
-                    </button>
-                    <button 
-                      onClick={() => {
-                        setTimeout(() => window.print(), 500);
-                      }}
-                      className="flex-1 sm:flex-none flex items-center justify-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-xl text-sm font-bold transition-all shadow-sm"
-                    >
-                      <Printer className="w-4 h-4" />
-                      <span>Cetak Riwayat</span>
-                    </button>
-                  </>
-                );
-              })()}
+              {riwayatGroupArray.length > 0 && (
+                <>
+                  <button 
+                    onClick={() => handleDownloadRiwayatCSV(riwayatGroupArray)}
+                    className="flex-1 sm:flex-none flex items-center justify-center gap-2 bg-white border border-slate-200 text-slate-700 px-4 py-2 rounded-xl text-sm font-bold hover:bg-slate-50 transition-colors shadow-sm"
+                  >
+                    <Download className="w-4 h-4" />
+                    <span className="hidden sm:inline">Unduh CSV</span>
+                  </button>
+                  <button 
+                    onClick={() => {
+                      setTimeout(() => window.print(), 500);
+                    }}
+                    className="flex-1 sm:flex-none flex items-center justify-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-xl text-sm font-bold transition-all shadow-sm"
+                  >
+                    <Printer className="w-4 h-4" />
+                    <span>Cetak Riwayat</span>
+                  </button>
+                </>
+              )}
             </div>
           </div>
           <div className="p-6">
@@ -490,256 +505,77 @@ export default function PenilaianSiswa({ currentUser }: PenilaianSiswaProps) {
                 <input type="text" value={kepalaSekolahNip} onChange={e => setKepalaSekolahNip(e.target.value)} className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm" />
               </div>
             </div>
-            {(() => {
-              const myGrades = allGrades.filter(g => g.recorded_by === profile.id);
-              if (myGrades.length === 0) {
-                return (
-                  <div className="print:hidden text-center py-12 text-slate-400 italic font-medium">
-                    Belum ada riwayat input nilai.
-                  </div>
-                );
-              }
-              // Group by class_id, mapel, tipe_nilai, semester
-              const groups: Record<string, {
-                class_id: string;
-                mapel: string;
-                tipe_nilai: string;
-                semester: string;
-                count: number;
-                last_updated: string;
-              }> = {};
-
-              myGrades.forEach(g => {
-                const key = `${g.class_id}_${g.mapel}_${g.tipe_nilai}_${g.semester}`;
-                if (!groups[key]) {
-                  groups[key] = {
-                    class_id: g.class_id,
-                    mapel: g.mapel,
-                    tipe_nilai: g.tipe_nilai,
-                    semester: g.semester,
-                    count: 0,
-                    last_updated: g.created_at || new Date().toISOString()
-                  };
-                }
-                groups[key].count++;
-                if (g.created_at && g.created_at > groups[key].last_updated) {
-                  groups[key].last_updated = g.created_at;
-                }
-              });
-
-              const groupArray = Object.values(groups).sort((a, b) => new Date(b.last_updated).getTime() - new Date(a.last_updated).getTime());
-
-              return (
-                <>
-                <div className="print:hidden overflow-x-auto border border-slate-200 rounded-xl">
-                  <table className="min-w-full divide-y divide-slate-200">
-                    <thead className="bg-slate-50">
-                      <tr>
-                        <th className="px-4 py-3 text-left text-xs font-bold text-slate-500 uppercase">Waktu Terakhir</th>
-                        <th className="px-4 py-3 text-left text-xs font-bold text-slate-500 uppercase">Kelas</th>
-                        <th className="px-4 py-3 text-left text-xs font-bold text-slate-500 uppercase">Mata Pelajaran</th>
-                        <th className="px-4 py-3 text-left text-xs font-bold text-slate-500 uppercase">Tipe Nilai</th>
-                        <th className="px-4 py-3 text-left text-xs font-bold text-slate-500 uppercase">Semester</th>
-                        <th className="px-4 py-3 text-center text-xs font-bold text-slate-500 uppercase">Siswa Dinilai</th>
-                        <th className="px-4 py-3 text-center text-xs font-bold text-slate-500 uppercase">Aksi</th>
-                      </tr>
-                    </thead>
-                    <tbody className="bg-white divide-y divide-slate-100">
-                      {groupArray.map((g, idx) => {
-                        const cls = classes.find(c => c.id === g.class_id);
-                        return (
-                          <tr key={idx} className="hover:bg-slate-50 transition-colors">
-                            <td className="px-4 py-3 whitespace-nowrap text-sm text-slate-500">
-                              {new Date(g.last_updated).toLocaleString('id-ID', {
-                                day: '2-digit', month: 'short', year: 'numeric',
-                                hour: '2-digit', minute: '2-digit'
-                              })}
-                            </td>
-                            <td className="px-4 py-3 whitespace-nowrap text-sm font-bold text-slate-800">{cls?.nama_kelas || 'Unknown'}</td>
-                            <td className="px-4 py-3 whitespace-nowrap text-sm text-slate-700">{g.mapel}</td>
-                            <td className="px-4 py-3 whitespace-nowrap text-sm text-slate-600 capitalize">{g.tipe_nilai.replace('_', ' ')}</td>
-                            <td className="px-4 py-3 whitespace-nowrap text-sm text-slate-600">{g.semester}</td>
-                            <td className="px-4 py-3 whitespace-nowrap text-sm text-center font-bold text-blue-600">{g.count} Siswa</td>
-                            <td className="px-4 py-3 whitespace-nowrap text-sm text-center">
-                              <button
-                                onClick={() => setSelectedRiwayat(g)}
-                                className="text-blue-600 hover:text-blue-800 bg-blue-50 hover:bg-blue-100 px-3 py-1.5 rounded-lg font-medium transition-colors text-xs"
-                              >
-                                Lihat Detail
-                              </button>
-                            </td>
-                          </tr>
-                        );
-                      })}
-                    </tbody>
-                  </table>
-                </div>
-
-                {/* Hidden Print Content for Riwayat */}
-                {!selectedRiwayat && (
-                  <div className="hidden print:block print-area print:p-8 bg-white" id="print-riwayat-nilai">
-                  {/* Kop Surat Header */}
-                            {/* Kop Surat Header */}
-          <div className="kop-surat" style={{ display: 'flex', alignItems: 'center', borderBottom: '3px solid black', paddingBottom: '10px', marginBottom: '20px' }}>
-            <img src="https://raw.githubusercontent.com/xiroro-ab/smp58dataguru/refs/heads/main/Logo_Palembang.png" style={{ width: '80px', height: '80px' }} alt="Logo Pemkot" crossOrigin="anonymous" referrerPolicy="no-referrer" />
-            <div style={{ textAlign: 'center', flexGrow: 1 }}>
-              <h3 style={{ margin: 0, fontSize: '14pt' }}>PEMERINTAH KOTA PALEMBANG</h3>
-              <h3 style={{ margin: 0, fontSize: '14pt' }}>DINAS PENDIDIKAN</h3>
-              <h3 style={{ fontSize: '1.4em', fontWeight: 'bold', margin: 0 }}>SMP NEGERI 58 PALEMBANG</h3>
-              <p style={{ fontSize: '0.9em', margin: 0 }}>Jl. Komering II, Kel. Demang Lebar Daun, Kec. Ilir Barat I, Kota Palembang 30137</p>
-            </div>
-            <img src="https://raw.githubusercontent.com/xiroro-ab/smp58dataguru/refs/heads/main/ico.png" style={{ width: '80px', height: '80px', objectFit: 'contain' }} alt="Logo SMP 58" crossOrigin="anonymous" referrerPolicy="no-referrer" />
-          </div>
-
-                  <div className="text-center mb-8">
-                    <h3 className="text-lg font-bold uppercase underline">Riwayat Input Nilai Guru</h3>
-                  </div>
-
-                  <div className="mb-6 text-sm">
-                    <table className="w-full">
-                      <tbody>
-                        <tr><td className="py-1 w-32 font-bold">Nama Guru</td><td className="py-1">: {profile.nama_lengkap}</td></tr>
-                        <tr><td className="py-1 font-bold">NIP</td><td className="py-1 font-mono">: {profile.nip || '-'}</td></tr>
-                      </tbody>
-                    </table>
-                  </div>
-
-                  <table className="w-full border-collapse border border-black text-sm" style={{ tableLayout: 'fixed', wordBreak: 'break-word' }}>
-                    <thead className="bg-gray-100">
-                      <tr>
-                        <th className="border border-black p-2 text-center w-12">No</th>
-                        <th className="border border-black p-2 text-left">Waktu Terakhir</th>
-                        <th className="border border-black p-2 text-center">Kelas</th>
-                        <th className="border border-black p-2 text-left">Mata Pelajaran</th>
-                        <th className="border border-black p-2 text-center">Tipe Nilai</th>
-                        <th className="border border-black p-2 text-center">Semester</th>
-                        <th className="border border-black p-2 text-center">Siswa Dinilai</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {groupArray.map((g, idx) => {
-                        const cls = classes.find(c => c.id === g.class_id);
-                        return (
-                          <tr key={idx}>
-                            <td className="border border-black p-2 text-center">{idx + 1}</td>
-                            <td className="border border-black p-2">
-                              {new Date(g.last_updated).toLocaleString('id-ID', {
-                                day: '2-digit', month: 'short', year: 'numeric',
-                                hour: '2-digit', minute: '2-digit'
-                              })}
-                            </td>
-                            <td className="border border-black p-2 text-center font-bold">{cls?.nama_kelas || 'Unknown'}</td>
-                            <td className="border border-black p-2">{g.mapel}</td>
-                            <td className="border border-black p-2 text-center capitalize">{g.tipe_nilai.replace('_', ' ')}</td>
-                            <td className="border border-black p-2 text-center">{g.semester}</td>
-                            <td className="border border-black p-2 text-center font-bold">{g.count} Siswa</td>
-                          </tr>
-                        );
-                      })}
-                    </tbody>
-                  </table>
-
-                            <div style={{ marginTop: '50px', display: 'flex', justifyContent: 'space-between', padding: '0 40px', pageBreakInside: 'avoid', breakInside: 'avoid' }}>
-            <div className="text-center">
-              <p style={{ margin: 0, fontSize: '10pt' }}>Mengetahui,</p>
-              <p style={{ margin: 0, fontSize: '10pt', fontWeight: 'bold' }}>Kepala SMP Negeri 58 Palembang</p>
-              <div style={{ height: '70px' }}></div>
-              <p style={{ margin: 0, fontSize: '10pt', fontWeight: 'bold', textDecoration: 'underline' }}>{kepalaSekolahNama}</p>
-              <p style={{ margin: 0, fontSize: '9pt', color: '#555' }}>NIP. {kepalaSekolahNip}</p>
-            </div>
-            <div className="text-center">
-              <p style={{ margin: 0, fontSize: '10pt' }}>Palembang, {new Date().toLocaleDateString('id-ID', {day: 'numeric', month: 'long', year: 'numeric'})}</p>
-              <p style={{ margin: 0, fontSize: '10pt', fontWeight: 'bold' }}>Guru Mata Pelajaran</p>
-              <div style={{ height: '70px' }}></div>
-              <p style={{ margin: 0, fontSize: '10pt', fontWeight: 'bold', textDecoration: 'underline' }}>{profile.nama_lengkap}</p>
-              <p style={{ margin: 0, fontSize: '9pt', color: '#555' }}>NIP. {profile.nip || '-'}</p>
-            </div>
-          </div>
-                </div>)}
-                </>
-              );
-            })()}
-          </div>
-        </div>
-      )}
-
-      {activeSubTab === 'rekap' && isWaliKelas && myClass && (
-        <div className="print:hidden bg-white rounded-3xl border border-slate-200/80 shadow-xs overflow-hidden">
-          <div className="p-5 border-b border-slate-100 bg-slate-50/50 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-            <div>
-              <h3 className="font-bold text-slate-800">Rekap Nilai: Kelas {myClass.nama_kelas}</h3>
-              <p className="text-xs text-slate-500">{semester}</p>
-            </div>
-            <div className="flex gap-2 w-full sm:w-auto">
-              <button 
-                onClick={handleDownloadCSV}
-                className="flex-1 sm:flex-none flex items-center justify-center gap-2 bg-white border border-slate-200 text-slate-700 px-4 py-2 rounded-xl text-sm font-bold hover:bg-slate-50 transition-colors shadow-sm"
-              >
-                <Download className="w-4 h-4" />
-                <span className="hidden sm:inline">Unduh CSV</span>
-              </button>
-              <button 
-                onClick={() => setShowPrintPreview(true)}
-                className="flex-1 sm:flex-none flex items-center justify-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-xl text-sm font-bold transition-all shadow-sm"
-              >
-                <Printer className="w-4 h-4" />
-                <span>Cetak Rekap</span>
-              </button>
-            </div>
-          </div>
-          
-          <div className="p-6">
-            {recapStudents.length === 0 ? (
-              <div className="text-center py-12 text-slate-400 italic font-medium">Belum ada siswa di kelas ini.</div>
-            ) : mapelsInClass.length === 0 ? (
-              <div className="text-center py-12 text-slate-400 italic font-medium">Belum ada data nilai yang diinput oleh Guru Mapel untuk kelas ini.</div>
+            
+            {riwayatGroupArray.length === 0 ? (
+              <div className="print:hidden text-center py-12 text-slate-400 italic font-medium">
+                Belum ada riwayat input nilai.
+              </div>
             ) : (
-              <div className="space-y-8">
-                {mapelsInClass.map(mapel => (
-                  <div key={mapel} className="border border-slate-200 rounded-xl overflow-hidden">
-                    <div className="bg-slate-100 px-4 py-3 font-bold text-slate-800 border-b border-slate-200">
-                      Mata Pelajaran: {mapel}
-                    </div>
-                    <div className="overflow-x-auto">
-                      <table className="min-w-full divide-y divide-slate-200">
-                        <thead className="bg-slate-50">
-                          <tr>
-                            <th className="px-4 py-2 text-left text-[10px] font-bold text-slate-500 uppercase">Nama Siswa</th>
-                            <th className="px-4 py-2 text-center text-[10px] font-bold text-slate-500 uppercase">Rata-rata Tugas</th>
-                            <th className="px-4 py-2 text-center text-[10px] font-bold text-slate-500 uppercase">Rata-rata UH</th>
-                            <th className="px-4 py-2 text-center text-[10px] font-bold text-slate-500 uppercase">UTS</th>
-                            <th className="px-4 py-2 text-center text-[10px] font-bold text-slate-500 uppercase">UAS</th>
-                            <th className="px-4 py-2 text-center text-[10px] font-bold text-slate-500 uppercase">Nilai Akhir</th>
-                          </tr>
-                        </thead>
-                        <tbody className="bg-white divide-y divide-slate-100">
-                          {recapStudents.map(s => {
-                            const recap = calculateStudentRecap(s.id, mapel);
-                            return (
-                              <tr key={s.id} className="hover:bg-slate-50">
-                                <td className="px-4 py-2 whitespace-nowrap text-xs font-bold text-slate-700">{s.nama_siswa}</td>
-                                {recap ? (
-                                  <>
-                                    <td className="px-4 py-2 whitespace-nowrap text-xs text-center font-mono">{recap.tugas}</td>
-                                    <td className="px-4 py-2 whitespace-nowrap text-xs text-center font-mono">{recap.uh}</td>
-                                    <td className="px-4 py-2 whitespace-nowrap text-xs text-center font-mono">{recap.uts}</td>
-                                    <td className="px-4 py-2 whitespace-nowrap text-xs text-center font-mono">{recap.uas}</td>
-                                    <td className="px-4 py-2 whitespace-nowrap text-xs text-center font-bold font-mono text-blue-700">{recap.akhir}</td>
-                                  </>
-                                ) : (
-                                  <td colSpan={5} className="px-4 py-2 text-center text-xs text-slate-400 italic">Belum ada nilai</td>
-                                )}
-                              </tr>
-                            );
-                          })}
-                        </tbody>
-                      </table>
-                    </div>
-                  </div>
-                ))}
+              <div className="print:hidden overflow-x-auto border border-slate-200 rounded-xl">
+                <table className="min-w-full divide-y divide-slate-200">
+                  <thead className="bg-slate-50">
+                    <tr>
+                      <th className="px-4 py-3 text-left text-xs font-bold text-slate-500 uppercase">Waktu Terakhir</th>
+                      <th className="px-4 py-3 text-left text-xs font-bold text-slate-500 uppercase">Kelas</th>
+                      <th className="px-4 py-3 text-left text-xs font-bold text-slate-500 uppercase">Mata Pelajaran</th>
+                      <th className="px-4 py-3 text-left text-xs font-bold text-slate-500 uppercase">Tipe Nilai</th>
+                      <th className="px-4 py-3 text-left text-xs font-bold text-slate-500 uppercase">Semester</th>
+                      <th className="px-4 py-3 text-center text-xs font-bold text-slate-500 uppercase">Siswa Dinilai</th>
+                      <th className="px-4 py-3 text-center text-xs font-bold text-slate-500 uppercase">Aksi</th>
+                    </tr>
+                  </thead>
+                  <tbody className="bg-white divide-y divide-slate-100">
+                    {riwayatGroupArray.map((g: any, idx: number) => {
+                      const cls = classes.find(c => c.id === g.class_id);
+                      return (
+                        <tr key={idx} className="hover:bg-slate-50 transition-colors">
+                          <td className="px-4 py-3 whitespace-nowrap text-sm text-slate-500">
+                            {new Date(g.last_updated).toLocaleString('id-ID', {
+                              day: '2-digit', month: 'short', year: 'numeric',
+                              hour: '2-digit', minute: '2-digit'
+                            })}
+                          </td>
+                          <td className="px-4 py-3 whitespace-nowrap text-sm font-bold text-slate-800">{cls?.nama_kelas || 'Unknown'}</td>
+                          <td className="px-4 py-3 whitespace-nowrap text-sm text-slate-700">{g.mapel}</td>
+                          <td className="px-4 py-3 whitespace-nowrap text-sm text-slate-600 capitalize">{g.tipe_nilai.replace('_', ' ')}</td>
+                          <td className="px-4 py-3 whitespace-nowrap text-sm text-slate-600">{g.semester}</td>
+                          <td className="px-4 py-3 whitespace-nowrap text-sm text-center font-bold text-blue-600">{g.count} Siswa</td>
+                          <td className="px-4 py-3 whitespace-nowrap text-sm text-center flex items-center justify-center gap-2">
+                            <button
+                              onClick={() => setSelectedRiwayat(g)}
+                              className="text-blue-600 hover:text-blue-800 bg-blue-50 hover:bg-blue-100 px-3 py-1.5 rounded-lg font-medium transition-colors text-xs"
+                            >
+                              Lihat Detail
+                            </button>
+                            <button
+                              onClick={() => {
+                                setSelectedClassId(g.class_id);
+                                setSelectedMapel(g.mapel);
+                                setSelectedTipe(g.tipe_nilai);
+                                setSemester(g.semester);
+                                setActiveSubTab('input');
+                              }}
+                              className="text-amber-600 hover:text-amber-800 bg-amber-50 hover:bg-amber-100 px-3 py-1.5 rounded-lg font-medium transition-colors text-xs"
+                            >
+                              Edit
+                            </button>
+                            <button
+                              onClick={() => handleDeleteRiwayat(g)}
+                              className="text-red-600 hover:text-red-800 bg-red-50 hover:bg-red-100 p-1.5 rounded-lg transition-colors"
+                              title="Hapus Nilai"
+                            >
+                              <Trash2 className="w-4 h-4" />
+                            </button>
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
               </div>
             )}
-          </div>
+
+                          </div>
         </div>
       )}
 
@@ -979,6 +815,88 @@ export default function PenilaianSiswa({ currentUser }: PenilaianSiswaProps) {
               <div style={{ height: '70px' }}></div>
               <p style={{ margin: 0, fontSize: '10pt', fontWeight: 'bold', textDecoration: 'underline' }}>{kepalaSekolahNama}</p>
               <p style={{ margin: 0, fontSize: '9pt', color: '#555' }}>NIP. {kepalaSekolahNip}</p>
+            </div>
+            <div className="text-center">
+              <p style={{ margin: 0, fontSize: '10pt' }}>Palembang, {new Date().toLocaleDateString('id-ID', {day: 'numeric', month: 'long', year: 'numeric'})}</p>
+              <p style={{ margin: 0, fontSize: '10pt', fontWeight: 'bold' }}>Guru Mata Pelajaran</p>
+              <div style={{ height: '70px' }}></div>
+              <p style={{ margin: 0, fontSize: '10pt', fontWeight: 'bold', textDecoration: 'underline' }}>{profile.nama_lengkap}</p>
+              <p style={{ margin: 0, fontSize: '9pt', color: '#555' }}>NIP. {profile.nip || '-'}</p>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Hidden Print Content for Riwayat */}
+      {activeSubTab === 'riwayat_input' && !selectedRiwayat && (
+        <div className="hidden print:block print-area print:p-8 bg-white" id="print-riwayat-nilai">
+          {/* Kop Surat Header */}
+          <div className="kop-surat" style={{ display: 'flex', alignItems: 'center', borderBottom: '3px solid black', paddingBottom: '10px', marginBottom: '20px' }}>
+            <img src="https://raw.githubusercontent.com/xiroro-ab/smp58dataguru/refs/heads/main/Logo_Palembang.png" style={{ width: '80px', height: '80px' }} alt="Logo Pemkot" crossOrigin="anonymous" referrerPolicy="no-referrer" />
+            <div style={{ textAlign: 'center', flexGrow: 1 }}>
+              <h3 style={{ margin: 0, fontSize: '14pt' }}>PEMERINTAH KOTA PALEMBANG</h3>
+              <h3 style={{ margin: 0, fontSize: '14pt' }}>DINAS PENDIDIKAN</h3>
+              <h3 style={{ fontSize: '1.4em', fontWeight: 'bold', margin: 0 }}>SMP NEGERI 58 PALEMBANG</h3>
+              <p style={{ fontSize: '0.9em', margin: 0 }}>Jl. Komering II, Kel. Demang Lebar Daun, Kec. Ilir Barat I, Kota Palembang 30137</p>
+            </div>
+            <img src="https://raw.githubusercontent.com/xiroro-ab/smp58dataguru/refs/heads/main/ico.png" style={{ width: '80px', height: '80px', objectFit: 'contain' }} alt="Logo SMP 58" crossOrigin="anonymous" referrerPolicy="no-referrer" />
+          </div>
+
+          <div className="text-center mb-8">
+            <h3 className="text-lg font-bold uppercase underline">Riwayat Input Nilai Guru</h3>
+          </div>
+
+          <div className="mb-6 text-sm">
+            <table className="w-full">
+              <tbody>
+                <tr><td className="py-1 w-32 font-bold">Nama Guru</td><td className="py-1">: {profile.nama_lengkap}</td></tr>
+                <tr><td className="py-1 font-bold">NIP</td><td className="py-1 font-mono">: {profile.nip || '-'}</td></tr>
+              </tbody>
+            </table>
+          </div>
+
+          <table className="w-full border-collapse border border-black text-sm" style={{ tableLayout: 'fixed', wordBreak: 'break-word' }}>
+            <thead className="bg-gray-100">
+              <tr>
+                <th className="border border-black p-2 text-center w-12">No</th>
+                <th className="border border-black p-2 text-left">Waktu Terakhir</th>
+                <th className="border border-black p-2 text-center">Kelas</th>
+                <th className="border border-black p-2 text-left">Mata Pelajaran</th>
+                <th className="border border-black p-2 text-center">Tipe Nilai</th>
+                <th className="border border-black p-2 text-center">Semester</th>
+                <th className="border border-black p-2 text-center">Siswa Dinilai</th>
+              </tr>
+            </thead>
+            <tbody>
+              {riwayatGroupArray.map((g: any, idx: number) => {
+                const cls = classes.find(c => c.id === g.class_id);
+                return (
+                  <tr key={idx}>
+                    <td className="border border-black p-2 text-center">{idx + 1}</td>
+                    <td className="border border-black p-2">
+                      {new Date(g.last_updated).toLocaleString('id-ID', {
+                        day: '2-digit', month: 'short', year: 'numeric',
+                        hour: '2-digit', minute: '2-digit'
+                      })}
+                    </td>
+                    <td className="border border-black p-2 text-center font-bold">{cls?.nama_kelas || 'Unknown'}</td>
+                    <td className="border border-black p-2">{g.mapel}</td>
+                    <td className="border border-black p-2 text-center capitalize">{g.tipe_nilai.replace('_', ' ')}</td>
+                    <td className="border border-black p-2 text-center">{g.semester}</td>
+                    <td className="border border-black p-2 text-center font-bold">{g.count} Siswa</td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+
+          <div style={{ marginTop: '50px', display: 'flex', justifyContent: 'space-between', padding: '0 40px', pageBreakInside: 'avoid', breakInside: 'avoid' }}>
+            <div className="text-center">
+              <p style={{ margin: 0, fontSize: '10pt' }}>Mengetahui,</p>
+              <p style={{ margin: 0, fontSize: '10pt', fontWeight: 'bold' }}>Kepala SMP Negeri 58 Palembang</p>
+              <div style={{ height: '70px' }}></div>
+              <p style={{ margin: 0, fontSize: '10pt', fontWeight: 'bold', textDecoration: 'underline' }}>{kepalaSekolahNama}</p>
+              <p style={{ margin: 0, fontSize: '9pt', color: '#555' }}>NIP. {kepalaSekolahNip || '-'}</p>
             </div>
             <div className="text-center">
               <p style={{ margin: 0, fontSize: '10pt' }}>Palembang, {new Date().toLocaleDateString('id-ID', {day: 'numeric', month: 'long', year: 'numeric'})}</p>
