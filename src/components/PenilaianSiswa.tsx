@@ -909,6 +909,90 @@ export default function PenilaianSiswa({ currentUser }: PenilaianSiswaProps) {
         </div>
       )}
 
+            {activeSubTab === 'rekap' && isWaliKelas && myClass && (
+        <div className="print:hidden bg-white rounded-3xl border border-slate-200/80 shadow-xs overflow-hidden">
+          <div className="p-5 border-b border-slate-100 bg-slate-50/50 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+            <div>
+              <h3 className="font-bold text-slate-800">Rekap Nilai: Kelas {myClass.nama_kelas}</h3>
+              <div className="flex gap-4 mt-2">
+                <select 
+                  value={semester} 
+                  onChange={(e) => setSemester(e.target.value)}
+                  className="px-3 py-1.5 border border-slate-300 rounded-lg text-sm bg-white"
+                >
+                  <option value="Ganjil 2026/2027">Ganjil 2026/2027</option>
+                  <option value="Genap 2026/2027">Genap 2026/2027</option>
+                  <option value="Ganjil 2027/2028">Ganjil 2027/2028</option>
+                  <option value="Genap 2027/2028">Genap 2027/2028</option>
+                </select>
+              </div>
+            </div>
+            <div className="flex flex-wrap gap-2">
+              <button 
+                onClick={handleDownloadCSV}
+                className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-xl text-sm font-bold transition-all shadow-sm"
+              >
+                Download CSV
+              </button>
+              <button 
+                onClick={() => setTimeout(() => window.print(), 500)}
+                className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-xl text-sm font-bold transition-all shadow-sm"
+              >
+                Cetak Laporan
+              </button>
+            </div>
+          </div>
+          
+          <div className="p-4 sm:p-6 overflow-x-auto">
+            {mapelsInClass.filter(mapel => recapStudents.some(s => calculateStudentRecap(s.id, mapel) !== null)).length === 0 ? (
+              <div className="text-center py-12 bg-slate-50 rounded-2xl border border-dashed border-slate-300">
+                <p className="text-slate-500 font-medium">Belum ada data nilai di kelas ini pada semester yang dipilih.</p>
+              </div>
+            ) : (
+              <div className="space-y-8">
+                {mapelsInClass.filter(mapel => recapStudents.some(s => calculateStudentRecap(s.id, mapel) !== null)).map(mapel => (
+                  <div key={mapel} className="bg-white border border-slate-200 rounded-xl overflow-hidden">
+                    <div className="bg-slate-50 px-4 py-3 border-b border-slate-200 font-bold text-slate-700 flex justify-between items-center">
+                      <span>Mata Pelajaran: {mapel}</span>
+                    </div>
+                    <table className="min-w-full divide-y divide-slate-200 text-sm">
+                      <thead className="bg-slate-50">
+                        <tr>
+                          <th className="px-4 py-3 text-left text-xs font-bold text-slate-500 uppercase w-16">No</th>
+                          <th className="px-4 py-3 text-left text-xs font-bold text-slate-500 uppercase">Nama Siswa</th>
+                          <th className="px-4 py-3 text-center text-xs font-bold text-slate-500 uppercase w-20">Tugas</th>
+                          <th className="px-4 py-3 text-center text-xs font-bold text-slate-500 uppercase w-20">UH</th>
+                          <th className="px-4 py-3 text-center text-xs font-bold text-slate-500 uppercase w-20">UTS</th>
+                          <th className="px-4 py-3 text-center text-xs font-bold text-slate-500 uppercase w-20">UAS</th>
+                          <th className="px-4 py-3 text-center text-xs font-bold text-blue-600 uppercase w-24">Akhir</th>
+                        </tr>
+                      </thead>
+                      <tbody className="bg-white divide-y divide-slate-100">
+                        {recapStudents.map((s, idx) => {
+                          const recap = calculateStudentRecap(s.id, mapel);
+                          if (!recap) return null; // Don't show students without grades
+                          return (
+                            <tr key={s.id} className="hover:bg-slate-50">
+                              <td className="px-4 py-2.5 whitespace-nowrap text-slate-500">{idx + 1}</td>
+                              <td className="px-4 py-2.5 whitespace-nowrap font-medium text-slate-800">{s.nama_siswa}</td>
+                              <td className="px-4 py-2.5 whitespace-nowrap text-center text-slate-600 font-mono">{recap.tugas}</td>
+                              <td className="px-4 py-2.5 whitespace-nowrap text-center text-slate-600 font-mono">{recap.uh}</td>
+                              <td className="px-4 py-2.5 whitespace-nowrap text-center text-slate-600 font-mono">{recap.uts}</td>
+                              <td className="px-4 py-2.5 whitespace-nowrap text-center text-slate-600 font-mono">{recap.uas}</td>
+                              <td className="px-4 py-2.5 whitespace-nowrap text-center font-bold text-blue-600 font-mono bg-blue-50/50">{recap.akhir}</td>
+                            </tr>
+                          );
+                        })}
+                      </tbody>
+                    </table>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
       {/* Hidden Print Content */}
       {activeSubTab === 'rekap' && isWaliKelas && myClass && (
         <div className="hidden print:block print-area print:p-8 bg-white" id="print-rekap-nilai">
