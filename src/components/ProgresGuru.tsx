@@ -345,7 +345,7 @@ export default function ProgresGuru() {
                         <th style={{ border: '1px solid black', padding: '6px', fontSize: '10pt', textAlign: 'center', width: '12%' }}>Tanggal</th>
                         <th style={{ border: '1px solid black', padding: '6px', fontSize: '10pt', textAlign: 'center' }}>Jenis</th>
                         <th style={{ border: '1px solid black', padding: '6px', fontSize: '10pt', textAlign: 'center', width: '10%' }}>Kelas</th>
-                        <th style={{ border: '1px solid black', padding: '6px', fontSize: '10pt', textAlign: 'center', width: '8%' }}>Jam</th>
+                        <th style={{ border: '1px solid black', padding: '6px', fontSize: '10pt', textAlign: 'center', width: '12%' }}>Jam</th>
                         <th style={{ border: '1px solid black', padding: '6px', fontSize: '10pt', textAlign: 'left' }}>Materi / Rencana Kegiatan</th>
                         {filterType !== 'agenda_harian' && (<th style={{ border: '1px solid black', padding: '6px', fontSize: '10pt', textAlign: 'left', width: '15%' }}>Siswa Absen / Keterangan</th>)}
                         <th style={{ border: '1px solid black', padding: '6px', fontSize: '10pt', textAlign: 'left', width: '15%' }}>Media Pembelajaran</th>
