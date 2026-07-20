@@ -1387,9 +1387,7 @@ export const GuruService = {
     if (activeStorageMode === 'supabase') {
       try {
         const range = getAcademicYearRange();
-        let query = supabase.from('student_grades').select('*')
-          .gte('created_at', range.start + 'T00:00:00Z')
-          .lte('created_at', range.end + 'T23:59:59Z');
+        let query = supabase.from('student_grades').select('*');
         if (classId) query = query.eq('class_id', classId);
         if (mapel) query = query.eq('mapel', mapel);
         const { data, error } = await query;
