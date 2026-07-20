@@ -284,7 +284,7 @@ export const CatatanKonseling: React.FC<Props> = ({ currentUser }) => {
           </div>
           <div style={{ textAlign: 'right' }}>
             <p style={{ margin: 0, fontSize: '10pt' }}>Palembang, {new Date().toLocaleDateString('id-ID', {day: 'numeric', month: 'long', year: 'numeric'})}</p>
-            <p style={{ margin: 0, fontSize: '10pt', fontWeight: 'bold' }}>{isAdmin ? 'Administrator' : 'Guru Bimbingan/Wali Kelas'}</p>
+            <p style={{ margin: 0, fontSize: '10pt', fontWeight: 'bold' }}>{isAdmin ? 'Administrator' : 'Guru Bimbingan'}</p>
             <div style={{ height: '70px' }}></div>
             <p style={{ margin: 0, fontSize: '10pt', fontWeight: 'bold', textDecoration: 'underline' }}>{currentUser.profile.nama_lengkap}</p>
             <p style={{ margin: 0, fontSize: '9pt', color: '#555' }}>NIP. {currentUser.profile.nip || '-'}</p>
