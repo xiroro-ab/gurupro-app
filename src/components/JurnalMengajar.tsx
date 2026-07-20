@@ -725,7 +725,7 @@ const handleExportCSV = () => {
                           <th className="border border-black p-2 text-center font-bold" style={{ width: '5%' }}>No.</th>
                           <th className="border border-black p-2 text-center font-bold" style={{ width: '12%' }}>Tanggal</th>
                           <th className="border border-black p-2 text-center font-bold" style={{ width: '10%' }}>Kelas</th>
-                          <th className="border border-black p-2 text-center font-bold" style={{ width: '8%' }}>Jam</th>
+                          <th className="border border-black p-2 text-center font-bold" style={{ width: '12%' }}>Jam</th>
                           <th className="border border-black p-2 text-left font-bold">Materi / Rencana Kegiatan</th>
                           {type !== 'agenda_harian' && (
                             <th className="border border-black p-2 text-left font-bold" style={{ width: '15%' }}>Absensi Siswa</th>
@@ -909,7 +909,7 @@ const handleExportCSV = () => {
                           <th className="border border-black p-2 text-center font-bold" style={{ width: '5%' }}>No.</th>
                           <th className="border border-black p-2 text-center font-bold" style={{ width: '12%' }}>Tanggal</th>
                           <th className="border border-black p-2 text-center font-bold" style={{ width: '10%' }}>Kelas</th>
-                          <th className="border border-black p-2 text-center font-bold" style={{ width: '8%' }}>Jam</th>
+                          <th className="border border-black p-2 text-center font-bold" style={{ width: '12%' }}>Jam</th>
                           <th className="border border-black p-2 text-left font-bold">Materi / Rencana Kegiatan</th>
                           {type !== 'agenda_harian' && (
                             <th className="border border-black p-2 text-left font-bold" style={{ width: '15%' }}>Absensi Siswa</th>
