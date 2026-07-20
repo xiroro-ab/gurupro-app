@@ -604,64 +604,41 @@ export default function PenilaianSiswa({ currentUser }: PenilaianSiswaProps) {
                     </table>
                   </div>
 
-                  <div className="space-y-8">
-                    {groupArray.map((g, idx) => {
-                      const cls = classes.find(c => c.id === g.class_id);
-                      
-                      const details = allGrades.filter(ag => 
-                        ag.class_id === g.class_id &&
-                        ag.mapel === g.mapel &&
-                        ag.tipe_nilai === g.tipe_nilai &&
-                        ag.semester === g.semester &&
-                        ag.created_at === g.last_updated
-                      );
-                      const exactMatches = details.length > 0 ? details : allGrades.filter(ag => 
-                        ag.class_id === g.class_id &&
-                        ag.mapel === g.mapel &&
-                        ag.tipe_nilai === g.tipe_nilai &&
-                        ag.semester === g.semester
-                      );
-
-                      return (
-                        <div key={idx} className="break-inside-avoid">
-                          <div className="flex justify-between items-end border-b-2 border-black pb-1 mb-2">
-                            <div>
-                              <p className="font-bold text-sm">Kelas: {cls?.nama_kelas || 'Unknown'} | Mapel: {g.mapel}</p>
-                              <p className="text-xs">Tipe: <span className="capitalize">{g.tipe_nilai.replace('_', ' ')}</span> | Semester: {g.semester}</p>
-                            </div>
-                            <div className="text-xs text-right">
-                              Waktu: {new Date(g.last_updated).toLocaleString('id-ID', {day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit'})}
-                            </div>
-                          </div>
-                          
-                          <table className="w-full border-collapse border border-black text-sm" style={{ tableLayout: 'fixed', wordBreak: 'break-word' }}>
-                            <thead className="bg-gray-100">
-                              <tr>
-                                <th className="border border-black p-1.5 text-center w-10">No</th>
-                                <th className="border border-black p-1.5 text-left">Nama Siswa</th>
-                                <th className="border border-black p-1.5 text-center w-24">Nilai</th>
-                                <th className="border border-black p-1.5 text-left">Keterangan</th>
-                              </tr>
-                            </thead>
-                            <tbody>
-                              {exactMatches.map((d, didx) => {
-                                const student = students.find(s => s.id === d.student_id);
-                                return (
-                                  <tr key={didx}>
-                                    <td className="border border-black p-1.5 text-center">{didx + 1}</td>
-                                    <td className="border border-black p-1.5">{student?.nama_siswa || 'Unknown'}</td>
-                                    <td className="border border-black p-1.5 text-center font-bold">{d.nilai}</td>
-                                    <td className="border border-black p-1.5">{d.keterangan || '-'}</td>
-                                  </tr>
-                                );
+                  <table className="w-full border-collapse border border-black text-sm" style={{ tableLayout: 'fixed', wordBreak: 'break-word' }}>
+                    <thead className="bg-gray-100">
+                      <tr>
+                        <th className="border border-black p-2 text-center w-12">No</th>
+                        <th className="border border-black p-2 text-left">Waktu Terakhir</th>
+                        <th className="border border-black p-2 text-center">Kelas</th>
+                        <th className="border border-black p-2 text-left">Mata Pelajaran</th>
+                        <th className="border border-black p-2 text-center">Tipe Nilai</th>
+                        <th className="border border-black p-2 text-center">Semester</th>
+                        <th className="border border-black p-2 text-center">Siswa Dinilai</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {groupArray.map((g, idx) => {
+                        const cls = classes.find(c => c.id === g.class_id);
+                        return (
+                          <tr key={idx}>
+                            <td className="border border-black p-2 text-center">{idx + 1}</td>
+                            <td className="border border-black p-2">
+                              {new Date(g.last_updated).toLocaleString('id-ID', {
+                                day: '2-digit', month: 'short', year: 'numeric',
+                                hour: '2-digit', minute: '2-digit'
                               })}
-                            </tbody>
-                          </table>
-                        </div>
-                      );
-                    })}
-                  </div>
-                  
+                            </td>
+                            <td className="border border-black p-2 text-center font-bold">{cls?.nama_kelas || 'Unknown'}</td>
+                            <td className="border border-black p-2">{g.mapel}</td>
+                            <td className="border border-black p-2 text-center capitalize">{g.tipe_nilai.replace('_', ' ')}</td>
+                            <td className="border border-black p-2 text-center">{g.semester}</td>
+                            <td className="border border-black p-2 text-center font-bold">{g.count} Siswa</td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+
                             <div style={{ marginTop: '50px', display: 'flex', justifyContent: 'space-between', padding: '0 40px', pageBreakInside: 'avoid', breakInside: 'avoid' }}>
             <div className="text-center">
               <p style={{ margin: 0, fontSize: '10pt' }}>Mengetahui,</p>
@@ -885,35 +862,33 @@ export default function PenilaianSiswa({ currentUser }: PenilaianSiswaProps) {
                   </thead>
                   <tbody className="bg-white divide-y divide-slate-100">
                     {(() => {
-                      const details = allGrades.filter(g => 
-                        g.class_id === selectedRiwayat.class_id &&
-                        g.mapel === selectedRiwayat.mapel &&
-                        g.tipe_nilai === selectedRiwayat.tipe_nilai &&
-                        g.semester === selectedRiwayat.semester &&
-                        g.created_at === selectedRiwayat.last_updated
-                      );
-                      
-                      // if not exactly matched by created_at (due to how it was grouped), fallback to all matching type and mapel, sorted.
-                      // Wait, a better grouping for "that specific time" is to match by exact timestamp if possible.
-                      // Let's use the ones that have the exact created_at matching last_updated, OR fallback to the whole set for that class/mapel/tipe/semester
-                      
-                      const exactMatches = details.length > 0 ? details : allGrades.filter(g => 
+                      const detailGrades = allGrades.filter(g => 
+                        g.recorded_by === profile.id &&
                         g.class_id === selectedRiwayat.class_id &&
                         g.mapel === selectedRiwayat.mapel &&
                         g.tipe_nilai === selectedRiwayat.tipe_nilai &&
                         g.semester === selectedRiwayat.semester
                       );
-
-                      return exactMatches.map((d, idx) => (
-                        <tr key={idx} className="hover:bg-slate-50">
-                          <td className="px-4 py-3 whitespace-nowrap text-sm text-slate-500 text-center">{idx + 1}</td>
-                          <td className="px-4 py-3 whitespace-nowrap text-sm font-bold text-slate-800">
-                            {students.find(s => s.id === d.student_id)?.nama_siswa || 'Unknown'}
-                          </td>
-                          <td className="px-4 py-3 whitespace-nowrap text-sm text-center font-bold text-blue-600">{d.nilai}</td>
-                          <td className="px-4 py-3 whitespace-nowrap text-sm text-slate-500">{d.keterangan || '-'}</td>
-                        </tr>
-                      ));
+                      
+                      const clsStudents = students.filter(s => s.class_id === selectedRiwayat.class_id).sort((a, b) => a.nama_siswa.localeCompare(b.nama_siswa));
+                      
+                      let printedIdx = 0;
+                      return clsStudents.map((student) => {
+                        const grade = detailGrades.find(g => g.student_id === student.id);
+                        if (!grade) return null;
+                        
+                        printedIdx++;
+                        return (
+                          <tr key={student.id} className="hover:bg-slate-50">
+                            <td className="px-4 py-3 whitespace-nowrap text-sm text-slate-500 text-center">{printedIdx}</td>
+                            <td className="px-4 py-3 whitespace-nowrap text-sm font-bold text-slate-800">
+                              {student.nama_siswa}
+                            </td>
+                            <td className="px-4 py-3 whitespace-nowrap text-sm text-center font-bold text-blue-600">{grade.nilai}</td>
+                            <td className="px-4 py-3 whitespace-nowrap text-sm text-slate-500">{grade.keterangan || '-'}</td>
+                          </tr>
+                        );
+                      });
                     })()}
                   </tbody>
                 </table>
@@ -978,13 +953,15 @@ export default function PenilaianSiswa({ currentUser }: PenilaianSiswaProps) {
                 
                 const clsStudents = students.filter(s => s.class_id === selectedRiwayat.class_id).sort((a, b) => a.nama_siswa.localeCompare(b.nama_siswa));
                 
-                return clsStudents.map((student, idx) => {
+                let printedIdx = 0;
+                return clsStudents.map((student) => {
                   const grade = detailGrades.find(g => g.student_id === student.id);
                   if (!grade) return null;
                   
+                  printedIdx++;
                   return (
                     <tr key={student.id}>
-                      <td className="border border-black py-2 px-3 text-center">{idx + 1}</td>
+                      <td className="border border-black py-2 px-3 text-center">{printedIdx}</td>
                       <td className="border border-black py-2 px-3">{student.nama_siswa}</td>
                       <td className="border border-black py-2 px-3 text-center font-bold">{grade.nilai}</td>
                       <td className="border border-black py-2 px-3">{grade.keterangan || '-'}</td>
