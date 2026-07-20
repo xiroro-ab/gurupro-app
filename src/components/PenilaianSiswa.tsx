@@ -4,6 +4,7 @@ import { GuruService as db } from '../services/supabase';
 import { TeacherProfile, ClassRoom, Student, GradeType, StudentGrade } from '../types';
 import { Save, AlertCircle, CheckCircle2, Search, FileText, Printer, Download, X, Trash2 } from 'lucide-react';
 import { useNotification } from './NotificationToast';
+import { ConfirmModal } from './ConfirmModal';
 import { SearchableSelect } from './SearchableSelect';
 
 interface PenilaianSiswaProps {
@@ -57,9 +58,7 @@ export default function PenilaianSiswa({ currentUser }: PenilaianSiswaProps) {
   });
 
   const handleDeleteRiwayat = (group: any) => {
-    if (window.confirm(`Apakah Anda yakin ingin menghapus seluruh nilai ${group.tipe_nilai.replace('_', ' ')} mapel ${group.mapel} kelas ini?`)) {
-      deleteGradesMutation.mutate(group);
-    }
+    setDeleteTarget(group);
   };
 
   // State for Input
@@ -70,6 +69,7 @@ export default function PenilaianSiswa({ currentUser }: PenilaianSiswaProps) {
   const [keterangan, setKeterangan] = useState('');
   
   const [gradesInput, setGradesInput] = useState<Record<string, number | ''>>({});
+  const [deleteTarget, setDeleteTarget] = useState<any>(null);
   const [selectedRiwayat, setSelectedRiwayat] = useState<{
     class_id: string;
     mapel: string;
@@ -992,6 +992,19 @@ export default function PenilaianSiswa({ currentUser }: PenilaianSiswaProps) {
           </div>
         </div>
       )}
+
+      {/* Hidden Print Content */}
+      <ConfirmModal
+        isOpen={!!deleteTarget}
+        title="Konfirmasi Hapus Data"
+        message={deleteTarget ? `Apakah Anda yakin ingin menghapus seluruh nilai ${deleteTarget.tipe_nilai.replace('_', ' ')} untuk mata pelajaran ${deleteTarget.mapel}? Tindakan ini tidak dapat dibatalkan.` : ''}
+        onConfirm={() => {
+          deleteGradesMutation.mutate(deleteTarget);
+          setDeleteTarget(null);
+        }}
+        onCancel={() => setDeleteTarget(null)}
+        confirmText="Hapus Data"
+      />
 
       {/* Hidden Print Content */}
       {activeSubTab === 'rekap' && isWaliKelas && myClass && (
