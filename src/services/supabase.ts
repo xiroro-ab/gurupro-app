@@ -1335,6 +1335,37 @@ export const GuruService = {
     throw new Error('Journal not found');
   },
 
+  async deleteGrades(classId: string, mapel: string, tipeNilai: string, semester: string, recordedBy: string): Promise<void> {
+    if (activeStorageMode === 'supabase') {
+      try {
+        const { error } = await supabase.from('student_grades')
+          .delete()
+          .eq('class_id', classId)
+          .eq('mapel', mapel)
+          .eq('tipe_nilai', tipeNilai)
+          .eq('semester', semester)
+          .eq('recorded_by', recordedBy);
+        if (error) throw new Error(error.message);
+        return;
+      } catch (err) {
+        console.warn('Supabase error deleting grades', err);
+        throw err;
+      }
+    }
+    
+    // Local delete
+    let grades = LocalDB.getGrades();
+    grades = grades.filter(g => 
+      !(g.class_id === classId && 
+        g.mapel === mapel && 
+        g.tipe_nilai === tipeNilai && 
+        g.semester === semester && 
+        g.recorded_by === recordedBy)
+    );
+    LocalDB.save('gurupro_student_grades', grades);
+    OfflineQueue.add('grade', 'delete', { class_id: classId, mapel, tipe_nilai: tipeNilai, semester, recorded_by: recordedBy }, 'Hapus Data Nilai');
+  },
+
   async deleteJournal(id: string): Promise<void> {
     if (activeStorageMode === 'supabase') {
       try {
