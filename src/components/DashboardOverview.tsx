@@ -150,14 +150,25 @@ ALTER TABLE teaching_journals DISABLE ROW LEVEL SECURITY;`;
 
     students.forEach(student => {
       const myAtts = attendanceByStudent[student.id] || [];
-      const sortedAtts = [...myAtts].sort((a, b) => b.tanggal.localeCompare(a.tanggal));
+      
+      // Group by date to prevent duplicate counts for the same day
+      const statusByDate: Record<string, string> = {};
+      myAtts.forEach(att => {
+        if (att.status === 'alfa') {
+          statusByDate[att.tanggal] = 'alfa';
+        } else if (!statusByDate[att.tanggal]) {
+          statusByDate[att.tanggal] = att.status;
+        }
+      });
+
+      const uniqueDates = Object.keys(statusByDate).sort((a, b) => b.localeCompare(a));
 
       let consecutiveDays = 0;
       const dates: string[] = [];
-      for (const att of sortedAtts) {
-        if (att.status === 'alfa') {
+      for (const date of uniqueDates) {
+        if (statusByDate[date] === 'alfa') {
           consecutiveDays++;
-          dates.push(att.tanggal);
+          dates.push(date);
         } else {
           break;
         }
