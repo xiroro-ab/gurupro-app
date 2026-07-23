@@ -91,7 +91,8 @@ ALTER TABLE teaching_journals DISABLE ROW LEVEL SECURITY;`;
   });
 
   // Today's Date String
-  const todayStr = '2026-06-24'; // Using the current local time context
+  const _d = new Date();
+  const todayStr = `${_d.getFullYear()}-${String(_d.getMonth() + 1).padStart(2, '0')}-${String(_d.getDate()).padStart(2, '0')}`;
 
   // Filter today's attendances
   const todayAttendances = attendances.filter(a => a.tanggal === todayStr);
